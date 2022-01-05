@@ -1,3 +1,6 @@
+import B from "bech32";
+import $ from "jquery";
+
 function hexStringToArrayBuffer(hexString) {
 	// remove the leading 0x
 	hexString = hexString.replace(/^0x/, '');
@@ -25,28 +28,37 @@ function hexStringToArrayBuffer(hexString) {
 	return array.buffer;
 }
 
-function hex_to_ascii(str1) {
-    var hex = str1. toString();
-    var str = '';
-    for (var n = 0; n < hex. length; n += 2) {
-        str += String.fromCharCode(parseInt(hex. substr(n, 2), 16));
-    }
-    return str;
-}
-
- async function getWalletStats() {
+export async function getWalletStats() {
     const isEnabled = await cardano.enable()
     if (!isEnabled) {
         return;
     }
     const networkId = await cardano.getNetworkId();
-        document.getElementById("network").innerHTML = 
-            networkId == 1 ? "Mainnet" : "Testnet";
+    $("#network").html(networkId == 1 ? "Mainnet" : "Testnet");
     const address = await getAddress();
-    document.getElementById("address").innerHTML = address;
+    $("#address").html(address);
     const balance = await getBalance();
-    document.getElementById("balance").innerHTML = balance;
+    $("#balance").html(valueToUl(balance));
     document.getElementById("payment-button").disabled = false;
+
+    const policyId = "424deb9056d16add0ae37cc654f8f4ae17e99efa9dd9fe5f8df1823c";
+    const nuggets = [];
+    const sauces = [];
+    for (var asset in balance) {
+        const parts = asset.split(".");
+        if(parts[0] === policyId) {
+            if(parts[1].startsWith("Nugget")){
+                nuggets.push(parts[1]);
+            } else if(parts[1].startsWith("Sauce")){
+                sauces.push(parts[1]);
+            }
+        }
+    }
+    $("#nugget-input").html(nuggets.map(n => `<option value="${n}">${n}</option>`).join(""));
+    $("#sauce-input").html(sauces.map(n => `<option value="${n}">${n}</option>`).join(""));
+    $("#nugget-input").prop("disabled", false);
+    $("#sauce-input").prop("disabled", false);
+    $("#dip-button").prop("disabled", false);
  }
 
 async function initiatePayment() {
@@ -71,17 +83,52 @@ async function initiatePayment() {
     await cardano.submitTx(signedTx);
 }
 
+function valueToUl(value){
+    var html = "<ul>";
+    for(var asset in value) {
+        html += `<li>${value[asset]} ${asset}</li>`;
+    }
+    html += "</ul>";
+    console.log(html);
+    return html;
+}
+
+function parseValue(v) {
+    var value = null;
+    if(typeof(v) === "number") {
+        value = {
+            lovelace: v
+        };
+    } else {
+        const lovelace = v[0];
+        value = {
+            lovelace
+        };
+        for (var policyStr in v[1]) {
+            var policyInts = new Uint8Array(policyStr.split(",").map(v => parseInt(v)));
+            const policy = uint8ArrayToHexString(policyInts);
+            for (var assetStr in v[1][policyStr]) {
+                var assetInts = new Uint8Array(assetStr.split(",").map(v => parseInt(v)));
+                const asset = hex2a(uint8ArrayToHexString(assetInts));
+                value[policy + "." + asset] = v[1][policyStr][assetStr];
+            }
+        }
+    }
+    return value;
+}
+
 async function getBalance() {
     const balanceHex = await cardano.getBalance();
     const balanceBuffer = hexStringToArrayBuffer(balanceHex);
-    return CBOR.decode(balanceBuffer)
+    const balance = CBOR.decode(balanceBuffer);
+    return parseValue(balance);
 }
 
 async function getAddress() {
     const address = await cardano.getChangeAddress()
     const datatosend = { address: address }
     const payload = JSON.stringify(datatosend)
-    response = await fetch("/getBech32Address", {
+    const response = await fetch("/getBech32Address", {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json;charset=utf-8'
@@ -91,17 +138,42 @@ async function getAddress() {
     return await response.text()
 }
 
+function uint8ArrayToHexString(arr) {
+    var hex = "";
+    for(var i = 0; i < arr.length; i++) {
+        hex += arr[i].toString(16).padStart(2, "0");
+    }
+    return hex;
+}
+
+function hex2a(hexx) {
+    var hex = hexx.toString();//force conversion
+    var str = '';
+    for (var i = 0; i < hex.length; i += 2)
+        str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));
+    return str;
+}
+
+function parseUtxo(utxo) {
+    const input = utxo[0];
+    const output = utxo[1];
+    const transactionId = uint8ArrayToHexString(input[0]);
+    const transactionIndex = input[1];
+    const utxoValue = parseValue(output[1]);
+
+    console.log(transactionId + "#" + transactionIndex);
+    console.log(utxoValue);
+}
+
 async function getUtxos() {
     const utxosHex = await cardano.getUtxos();
     const utxos = utxosHex.map(u => CBOR.decode(hexStringToArrayBuffer(u)));
-    const datatosend = { utxosHex, utxos };
-    const payload = JSON.stringify(datatosend);
-    response = await fetch("/getUtxos", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json;charset=utf-8'
-        },
-        body: payload
-    });
-    return await response.text();
+    for(var i = 0; i < utxos.length; i++){
+        parseUtxo(utxos[i]);
+    }
 }
+
+window.addEventListener('load', (event) => {
+    $("#get-stats-button").on("click", () => getWalletStats());
+    $("#payment-button").on("click", () => initiatePayment());
+});

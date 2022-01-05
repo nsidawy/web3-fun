@@ -25,11 +25,6 @@ app.post('/getBech32Address', (req, res) => {
     res.send(bech32);
 });
 
-app.post('/getUtxos', (req, res) => {
-    const u = req.body.utxosHex.map(u => S.TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")))
-    res.send(u);
-});
-
 app.post('/payVendingMachine', (req, res) => {
     const txBuilderConfig = S.TransactionBuilderConfigBuilder.new()
         .max_tx_size(16384)

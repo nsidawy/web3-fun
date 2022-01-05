@@ -1,19 +1,15 @@
 <html>
 	<head>
         <script type="text/javascript" src="cbor.js"></script>
-		<script type="text/javascript" src="index.js"></script>
-		<!--
-        <script type="text/javascript" src="node_modules/@emurgo/cardano-serialization-lib-asmjs/cardano_serialization_lib_bg.js"></script>
-		<script type="text/javascript" src="node_modules/@emurgo/cardano-serialization-lib-asmjs/cardano_serialization_lib.asm.js"></script>
-        -->
-		<script>
-		</script>
+		<script type="text/javascript" src="dist/main.js"></script>
+		<!--<script type="text/javascript" src="index.js"></script>-->
 	</head>
 	<body>
-        <h1>Click to get your wallet info:<button onclick="getWalletStats()">Click Me</button></h1>
+        <h1>Click to get your wallet info:<button id="get-stats-button">Click Me</button></h1>
         <p>Network: <b><span id="network"></span></b></p>		
         <p>Balance: <b><span id="balance"></span></b></p>		
         <p>Address: <b><span id="address"></span></b></p>		
-        <p>Buy NFT: <input id="lovelace-input" type="number" value="10000000"/> <button id="payment-button" onclick="initiatePayment()" disabled>Click Me</button></p>
+        <p>Buy Nuggets: <input id="lovelace-input" type="number" value="10000000"/> <button id="payment-button" disabled>Click Me</button></p>
+        <p>Dip your <select id="nugget-input" type="dropdown" disabled></select> in <select id="sauce-input" type="dropdown" disabled></select>&nbsp;<button id="dip-button" disabled>DIP!!!</button></p>
 	</body>
 </html>
