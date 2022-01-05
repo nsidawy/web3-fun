@@ -20,6 +20,14 @@ function hex2a(hexx) {
     return str;
 }
 
+function uint8ArrayToHexString(arr) {
+    var hex = "";
+    for(var i = 0; i < arr.length; i++) {
+        hex += arr[i].toString(16).padStart(2, "0");
+    }
+    return hex;
+}
+
 function hexStringToArrayBuffer(hexString) {
 	// remove the leading 0x
 	hexString = hexString.replace(/^0x/, '');
@@ -81,6 +89,7 @@ export async function getWalletStats() {
 
 async function initiatePayment() {
     const address = await cardano.getChangeAddress()
+    // TODO: handle pagination
     const utxosHex = await cardano.getUtxos();
     const lovelace = parseInt(document.getElementById("lovelace-input").value);
 
@@ -103,6 +112,7 @@ async function initiatePayment() {
 
 async function initiateDip() {
     const address = await cardano.getChangeAddress()
+    // TODO: handle pagination
     const utxosHex = await cardano.getUtxos();
     const nuggetSelection = $("#nugget-input").val()
     const sauceSelection = $("#sauce-input").val()
@@ -187,14 +197,6 @@ async function getAddress() {
     return await response.text()
 }
 
-function uint8ArrayToHexString(arr) {
-    var hex = "";
-    for(var i = 0; i < arr.length; i++) {
-        hex += arr[i].toString(16).padStart(2, "0");
-    }
-    return hex;
-}
-
 function parseUtxo(utxo) {
     const input = utxo[0];
     const output = utxo[1];
@@ -207,6 +209,7 @@ function parseUtxo(utxo) {
 }
 
 async function getUtxos() {
+    // TODO: handle pagination
     const utxosHex = await cardano.getUtxos();
     const utxos = utxosHex.map(u => CBOR.decode(hexStringToArrayBuffer(u)));
     for(var i = 0; i < utxos.length; i++){

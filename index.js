@@ -41,29 +41,6 @@ app.post('/payVendingMachine', (req, res) => {
     const utxos = req.body.utxosHex.map(u => S.TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")))
     const lovelace = req.body.lovelace;
 
-    var utxoToUse = "";
-    // look for utxo to satisfy transaction
-    for(var i=0; i < utxos.length; i++) {
-        const utxo = utxos[i];
-        const utxoLovelace = parseInt(utxo.output().amount().coin().to_str());
-        // add a buffer of 10 ada for fees, min outputs, etc
-        if (utxoLovelace > lovelace + 10000000) {
-            console.log("Found valid UTXO.")
-            utxoToUse = utxo;
-            break;
-        }
-    }
-    // if none exists, then just use all of them
-    if (utxoToUse === "") {
-        console.log("Could not find adequate UTXO.")
-        for(var i=0; i < utxos.length; i++) {
-            const utxo = utxos[i];
-            txBuilder.add_input(utxo.output().address(), utxo.input(), utxo.output().amount());
-        }
-    } else {
-        txBuilder.add_input(utxoToUse.output().address(), utxoToUse.input(), utxoToUse.output().amount());
-    }
-
     const outputs = S.TransactionOutputs.new();
     outputs.add(
         S.TransactionOutput.new(
@@ -72,6 +49,10 @@ app.post('/payVendingMachine', (req, res) => {
         )
     );
     txBuilder.add_output(outputs.get(0));
+
+    const transactionUnspentOutputs = S.TransactionUnspentOutputs.new();
+    req.body.utxosHex.forEach((u => transactionUnspentOutputs.add(S.TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")))));
+    txBuilder.add_inputs_from(transactionUnspentOutputs, S.CoinSelectionStrategyCIP2.LargestFirst);
 
     const changeAddress = S.Address.from_bytes(Buffer.from(req.body.address, 'hex'));
     txBuilder.add_change_if_needed(changeAddress);
@@ -83,18 +64,12 @@ app.post('/payVendingMachine', (req, res) => {
 
 app.post('/dip', (req, res) => {
     const txBuilder =  S.TransactionBuilder.new(getTxConfig());
-    const utxos = req.body.utxosHex.map(u => S.TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")))
     const lovelace = 5000000;
-
-    // consume all UTXOs for simplicty
-    for(var i=0; i < utxos.length; i++) {
-        const utxo = utxos[i];
-        txBuilder.add_input(utxo.output().address(), utxo.input(), utxo.output().amount());
-    }
 
     const policyScriptHash = S.ScriptHash.from_bytes(Buffer.from(req.body.policyHex, "hex"));
     const nuggetAssetName = S.AssetName.new(Buffer.from(req.body.nuggetHex, "hex"));
     const sauceAssetName = S.AssetName.new(Buffer.from(req.body.sauceHex, "hex"));
+
     const multiAsset = S.MultiAsset.new();
     const assets = S.Assets.new();
     assets.insert(nuggetAssetName, S.BigNum.from_str("1"));
@@ -104,6 +79,10 @@ app.post('/dip', (req, res) => {
         S.Address.from_bech32(vendingAddress),
         S.BigNum.from_str(lovelace.toString()),
         multiAsset);
+
+    const transactionUnspentOutputs = S.TransactionUnspentOutputs.new();
+    req.body.utxosHex.forEach((u => transactionUnspentOutputs.add(S.TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")))));
+    txBuilder.add_inputs_from(transactionUnspentOutputs, S.CoinSelectionStrategyCIP2.LargestFirst);
 
     const changeAddress = S.Address.from_bytes(Buffer.from(req.body.address, 'hex'));
     txBuilder.add_change_if_needed(changeAddress);
