@@ -9,7 +9,11 @@
         <p>Network: <b><span id="network"></span></b></p>		
         <p>Balance: <b><span id="balance"></span></b></p>		
         <p>Address: <b><span id="address"></span></b></p>		
-        <p>Buy Nuggets: <input id="lovelace-input" type="number" value="10000000"/> <button id="payment-button" disabled>Click Me</button></p>
+        <p>Buy Nuggets: <select id="lovelace-input">
+               <option value="10000000">10 ADA</option>
+               <option value="25000000">25 ADA</option>
+               <option value="333000000">333 ADA</option>
+        </select> <button id="payment-button" disabled>Click Me</button></p>
         <p>Dip your <select id="nugget-input" type="dropdown" disabled></select> in <select id="sauce-input" type="dropdown" disabled></select>&nbsp;<button id="dip-button" disabled>DIP!!!</button></p>
 	</body>
 </html>

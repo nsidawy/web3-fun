@@ -25,8 +25,8 @@ app.post('/getBech32Address', (req, res) => {
     res.send(bech32);
 });
 
-app.post('/payVendingMachine', (req, res) => {
-    const txBuilderConfig = S.TransactionBuilderConfigBuilder.new()
+function getTxConfig() {
+    return S.TransactionBuilderConfigBuilder.new()
         .max_tx_size(16384)
         .pool_deposit(S.BigNum.from_str('500000000'))
         .key_deposit(S.BigNum.from_str('2000000'))
@@ -34,7 +34,10 @@ app.post('/payVendingMachine', (req, res) => {
         .max_value_size(5000)
         .coins_per_utxo_word(S.BigNum.from_str('34482'))
         .build()
-    const txBuilder =  S.TransactionBuilder.new(txBuilderConfig);
+}
+
+app.post('/payVendingMachine', (req, res) => {
+    const txBuilder =  S.TransactionBuilder.new(getTxConfig());
     const utxos = req.body.utxosHex.map(u => S.TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")))
     const lovelace = req.body.lovelace;
 
@@ -60,7 +63,6 @@ app.post('/payVendingMachine', (req, res) => {
     } else {
         txBuilder.add_input(utxoToUse.output().address(), utxoToUse.input(), utxoToUse.output().amount());
     }
-    
 
     const outputs = S.TransactionOutputs.new();
     outputs.add(
@@ -70,6 +72,38 @@ app.post('/payVendingMachine', (req, res) => {
         )
     );
     txBuilder.add_output(outputs.get(0));
+
+    const changeAddress = S.Address.from_bytes(Buffer.from(req.body.address, 'hex'));
+    txBuilder.add_change_if_needed(changeAddress);
+
+    const transaction = S.Transaction.new(txBuilder.build(), S.TransactionWitnessSet.new());
+    const transactionBytes = Buffer.from(transaction.to_bytes(), "hex").toString("hex");
+    res.send(transactionBytes)
+});
+
+app.post('/dip', (req, res) => {
+    const txBuilder =  S.TransactionBuilder.new(getTxConfig());
+    const utxos = req.body.utxosHex.map(u => S.TransactionUnspentOutput.from_bytes(Buffer.from(u, "hex")))
+    const lovelace = 5000000;
+
+    // consume all UTXOs for simplicty
+    for(var i=0; i < utxos.length; i++) {
+        const utxo = utxos[i];
+        txBuilder.add_input(utxo.output().address(), utxo.input(), utxo.output().amount());
+    }
+
+    const policyScriptHash = S.ScriptHash.from_bytes(Buffer.from(req.body.policyHex, "hex"));
+    const nuggetAssetName = S.AssetName.new(Buffer.from(req.body.nuggetHex, "hex"));
+    const sauceAssetName = S.AssetName.new(Buffer.from(req.body.sauceHex, "hex"));
+    const multiAsset = S.MultiAsset.new();
+    const assets = S.Assets.new();
+    assets.insert(nuggetAssetName, S.BigNum.from_str("1"));
+    assets.insert(sauceAssetName, S.BigNum.from_str("1"));
+    multiAsset.insert(policyScriptHash, assets);
+    txBuilder.add_output_coin_and_asset(
+        S.Address.from_bech32(vendingAddress),
+        S.BigNum.from_str(lovelace.toString()),
+        multiAsset);
 
     const changeAddress = S.Address.from_bytes(Buffer.from(req.body.address, 'hex'));
     txBuilder.add_change_if_needed(changeAddress);
