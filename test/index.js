@@ -14,8 +14,28 @@ async function getWalletStats() {
     const address = await getAddress(networkId);
     $("#address").html(address);
     const balance = await getBalance();
-    $("#balance").html(valueToUl(balance));
+    $("#balance").html(getBalanceHtmlList(balance));
 
+    // enable inputs
+    setNuggetSauceDropdowns(balance);
+    $("#dip-button").prop("disabled", false);
+    $("#payment-button").prop("disabled", false);
+
+    console.log(await getUtxos());
+ }
+
+function getBalanceHtmlList(value){
+    var html = "<ul>";
+    html += `<li>${value.lovelace} lovelace</li>`;
+    for(var i = 0; i < value.otherAssets.length; i++) {
+        const a = value.otherAssets[i];
+        html += `<li>${a.amount} ${a.asset}</li>`;
+    }
+    html += "</ul>";
+    return html;
+}
+
+function setNuggetSauceDropdowns(balance) {
     const nuggets = [];
     const sauces = [];
     for (var i = 0; i < balance.otherAssets.length; i++) {
@@ -29,16 +49,11 @@ async function getWalletStats() {
             }
         }
     }
-    // enable inputs
     $("#nugget-input").html(nuggets.map(n => `<option value="${n}">${n}</option>`).join(""));
     $("#sauce-input").html(sauces.map(n => `<option value="${n}">${n}</option>`).join(""));
     $("#nugget-input").prop("disabled", false);
     $("#sauce-input").prop("disabled", false);
-    $("#dip-button").prop("disabled", false);
-    $("#payment-button").prop("disabled", false);
-
-    console.log(await getUtxos());
- }
+}
 
 async function initiatePayment() {
     const address = await cardano.getChangeAddress()
@@ -93,17 +108,6 @@ async function initiateDip() {
     const signResponse = await fetch("/getsignedtx?txBytes=" + tx + "&witness=" + witnessSet)
     const signedTx = await signResponse.text()
     await cardano.submitTx(signedTx);
-}
-
-function valueToUl(value){
-    var html = "<ul>";
-    html += `<li>${value.lovelace} lovelace</li>`;
-    for(var i = 0; i < value.otherAssets.length; i++) {
-        const a = value.otherAssets[i];
-        html += `<li>${a.amount} ${a.asset}</li>`;
-    }
-    html += "</ul>";
-    return html;
 }
 
 window.addEventListener('load', (event) => {
