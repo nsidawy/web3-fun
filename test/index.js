@@ -1,4 +1,4 @@
-import $ from "jquery";
+const $ = require("jquery");
 import { a2hex, hex2a, hexStringToArrayBuffer, uint8ArrayToHexString} from "./hexUtils"
 import { getAddress, getUtxos, getBalance} from "./walletUtils"
 
@@ -15,8 +15,8 @@ async function getWalletStats() {
     $("#address").html(address);
     const balance = await getBalance();
     $("#balance").html(getBalanceHtmlList(balance));
-
-    // enable inputs
+    
+    // enable & update inputs
     setNuggetSauceDropdowns(balance);
     $("#dip-button").prop("disabled", false);
     $("#payment-button").prop("disabled", false);
@@ -56,6 +56,8 @@ function setNuggetSauceDropdowns(balance) {
 }
 
 async function initiatePayment() {
+    //TODO ensure wallet is connected to expected network
+
     const address = await cardano.getChangeAddress()
     // TODO: handle pagination
     const utxosHex = await cardano.getUtxos();
@@ -71,14 +73,12 @@ async function initiatePayment() {
         body: payload
     });
     const tx = await response.text()
-    const witnessSet = await cardano.signTx(tx);
-    
-    const signResponse = await fetch("/getsignedtx?txBytes=" + tx + "&witness=" + witnessSet)
-    const signedTx = await signResponse.text()
-    await cardano.submitTx(signedTx);
+    await completeTransaction(tx);
 }
 
 async function initiateDip() {
+    //TODO ensure wallet is connected to expected network
+
     const address = await cardano.getChangeAddress()
     // TODO: handle pagination
     const utxosHex = await cardano.getUtxos();
@@ -103,8 +103,11 @@ async function initiateDip() {
         body: payload
     });
     const tx = await response.text()
+    await completeTransaction(tx);
+}
+
+async function completeTransaction(tx) {
     const witnessSet = await cardano.signTx(tx);
-    
     const signResponse = await fetch("/getsignedtx?txBytes=" + tx + "&witness=" + witnessSet)
     const signedTx = await signResponse.text()
     await cardano.submitTx(signedTx);
