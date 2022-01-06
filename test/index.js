@@ -1,6 +1,6 @@
 import $ from "jquery";
 import { a2hex, hex2a, hexStringToArrayBuffer, uint8ArrayToHexString} from "./hexUtils"
-import { getAddress, parseValue, parseUtxo, getBalance} from "./walletUtils"
+import { getAddress, getUtxos, getBalance} from "./walletUtils"
 
 const policyId = "424deb9056d16add0ae37cc654f8f4ae17e99efa9dd9fe5f8df1823c";
 
@@ -18,8 +18,9 @@ async function getWalletStats() {
 
     const nuggets = [];
     const sauces = [];
-    for (var asset in balance) {
-        const parts = asset.split(".");
+    for (var i = 0; i < balance.otherAssets.length; i++) {
+        const a = balance.otherAssets[i];
+        const parts = a.asset.split(".");
         if(parts[0] === policyId) {
             if(parts[1].startsWith("Nugget")){
                 nuggets.push(parts[1]);
@@ -35,6 +36,8 @@ async function getWalletStats() {
     $("#sauce-input").prop("disabled", false);
     $("#dip-button").prop("disabled", false);
     $("#payment-button").prop("disabled", false);
+
+    console.log(await getUtxos());
  }
 
 async function initiatePayment() {
@@ -94,8 +97,10 @@ async function initiateDip() {
 
 function valueToUl(value){
     var html = "<ul>";
-    for(var asset in value) {
-        html += `<li>${value[asset]} ${asset}</li>`;
+    html += `<li>${value.lovelace} lovelace</li>`;
+    for(var i = 0; i < value.otherAssets.length; i++) {
+        const a = value.otherAssets[i];
+        html += `<li>${a.amount} ${a.asset}</li>`;
     }
     html += "</ul>";
     return html;

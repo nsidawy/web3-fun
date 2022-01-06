@@ -34,12 +34,14 @@ export function parseValue(v) {
     var value = null;
     if(typeof(v) === "number") {
         value = {
-            lovelace: v
+            lovelace: v,
+			otherAssets: []
         };
     } else {
         const lovelace = v[0];
         value = {
-            lovelace
+            lovelace,
+			otherAssets: []
         };
         for (var policyStr in v[1]) {
             var policyInts = new Uint8Array(policyStr.split(",").map(v => parseInt(v)));
@@ -47,24 +49,29 @@ export function parseValue(v) {
             for (var assetStr in v[1][policyStr]) {
                 var assetInts = new Uint8Array(assetStr.split(",").map(v => parseInt(v)));
                 const asset = hex2a(uint8ArrayToHexString(assetInts));
-                value[policy + "." + asset] = v[1][policyStr][assetStr];
-            }
+                value.otherAssets.push({
+					asset: policy + "." + asset,
+					amount: v[1][policyStr][assetStr]
+  	          	});
+			}
         }
     }
     return value;
 }
 
-
 export async function getUtxos() {
     // TODO: handle pagination
     const utxosHex = await cardano.getUtxos();
     const utxos = utxosHex.map(u => CBOR.decode(hexStringToArrayBuffer(u)));
+	const parsedUtxos = []
     for(var i = 0; i < utxos.length; i++){
-        parseUtxo(utxos[i]);
+        parsedUtxos.push(parseUtxo(utxos[i]));
     }
+
+	return parsedUtxos;
 }
 
-export function parseUtxo(utxo) {
+function parseUtxo(utxo) {
     const input = utxo[0];
     const output = utxo[1];
     const transactionId = uint8ArrayToHexString(input[0]);
