@@ -26,6 +26,7 @@ app.post('/getBech32Address', (req, res) => {
 });
 
 function getTxConfig() {
+    // TODO: determine a more dyanamic way to pull this info?
     return S.TransactionBuilderConfigBuilder.new()
         .max_tx_size(16384)
         .pool_deposit(S.BigNum.from_str('500000000'))
