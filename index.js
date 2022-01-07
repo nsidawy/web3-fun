@@ -17,6 +17,10 @@ const MINTING_KEY_HASH = process.env.MINTING_KEY_HASH;
 //  * Dropping the first 4 characters "5820"
 //  * Taking the output of "echo <remaing CBOR hex values> | bech32 ed25519_sk"
 const MINTING_SKEY_BECH32 = process.env.MINTING_SKEY_BECH32;
+// Getting this value requires:
+//  * Getting the CBOR hex value out of the *skey file
+//  * Dropping the first 4 characters "5820"
+const MINTING_KEY_CBOR = process.env.MINTING_KEY_CBOR;
 
 app.use(bodyParser.json());
 app.use(express.static('test'));
@@ -162,7 +166,7 @@ app.get('/getmultisignedtx', (req, res) => {
     vkeys.add(
         S.make_vkey_witness(
             S.hash_transaction(transaction.body()),
-            S.PrivateKey.from_bech32(MINTING_SKEY_BECH32)));
+            S.PrivateKey.from_normal_bytes(Buffer.from(MINTING_KEY_CBOR, "hex"))));
     witnessSet.set_vkeys(vkeys);
     const scripts = S.NativeScripts.new();
     scripts.add(getMintingNativeScript());
