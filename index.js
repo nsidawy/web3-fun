@@ -9,6 +9,7 @@ const app = express();
 
 const PORT = process.env.PORT;
 const VENDING_ADDRESS_BECH32 = process.env.VENDING_ADDRESS_BECH32;
+const DIPPING_ADDRESS_BECH32 = process.env.DIPPING_ADDRESS_BECH32;
 const MINTING_ADDRESS_BECH32 = process.env.MINTING_ADDRESS_BECH32;
 // Value retrieved by using "cardano-cli address key-hash"
 const MINTING_KEY_HASH = process.env.MINTING_KEY_HASH;
@@ -89,7 +90,7 @@ app.post('/dip', (req, res) => {
     assets.insert(sauceAssetName, S.BigNum.from_str("1"));
     multiAsset.insert(policyScriptHash, assets);
     txBuilder.add_output_coin_and_asset(
-        S.Address.from_bech32(VENDING_ADDRESS_BECH32),
+        S.Address.from_bech32(DIPPING_ADDRESS_BECH32),
         S.BigNum.from_str(lovelace.toString()),
         multiAsset);
 
